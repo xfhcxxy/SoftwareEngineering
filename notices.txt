@@ -1,0 +1,1 @@
+opencv中图像是BGR的，face_recognition中是RGB
