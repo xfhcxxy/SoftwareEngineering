@@ -1,53 +1,157 @@
-import copy
-import threading
-import cv2
+import sys
 import os
-import face_recognition as fr
-import numpy as np
-import time
+import cv2
+
+from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5.QtWidgets import *
+from PyQt5.QtCore import *
+from PyQt5.QtGui import QPalette, QBrush, QPixmap
+import glo
+import copy
 from name import *
 from rectangle import *
-import glo
+
+class Ui_MainWindow(QtWidgets.QWidget):
+    def __init__(self, parent=None):
+        super(Ui_MainWindow, self).__init__(parent)
+
+        self.timer_camera = QtCore.QTimer()  # 初始化定时器
+        self.cap = cv2.VideoCapture()  # 初始化摄像头
+        self.CAM_NUM = 0
+        self.set_ui()
+        self.slot_init()
+        self.__flag_work = 0
+        self.x = 0
+        self.count = 0
+        self.rec = GetRectangle()
+        self.name = GetName()
+
+    def set_ui(self):
+        self.__layout_main = QtWidgets.QHBoxLayout()  # 采用QHBoxLayout类，按照从左到右的顺序来添加控件
+        self.__layout_fun_button = QtWidgets.QHBoxLayout()
+        self.__layout_data_show = QtWidgets.QVBoxLayout()  # QVBoxLayout类垂直地摆放小部件
+
+        self.button_open_camera = QtWidgets.QPushButton(u'打开相机')
+        self.button_close = QtWidgets.QPushButton(u'退出')
+
+        # button颜色修改
+        button_color = [self.button_open_camera, self.button_close]
+        for i in range(2):
+            button_color[i].setStyleSheet("QPushButton{color:black}"
+                                           "QPushButton:hover{color:red}"
+                                           "QPushButton{background-color:rgb(78,255,255)}"
+                                           "QpushButton{border:2px}"
+                                           "QPushButton{border_radius:10px}"
+                                           "QPushButton{padding:2px 4px}")
+
+        self.button_open_camera.setMinimumHeight(50)
+        self.button_close.setMinimumHeight(50)
+
+        # move()方法是移动窗口在屏幕上的位置到x = 500，y = 500的位置上
+        self.move(500, 500)
+
+        # 信息显示
+        self.label_show_camera = QtWidgets.QLabel()
+        self.label_move = QtWidgets.QLabel()
+        self.label_move.setFixedSize(100, 100)
+
+        self.label_show_camera.setFixedSize(641, 481)
+        self.label_show_camera.setAutoFillBackground(False)
+
+        self.__layout_fun_button.addWidget(self.button_open_camera)
+        self.__layout_fun_button.addWidget(self.button_close)
+        self.__layout_fun_button.addWidget(self.label_move)
+
+        self.__layout_main.addLayout(self.__layout_fun_button)
+        self.__layout_main.addWidget(self.label_show_camera)
+
+        self.setLayout(self.__layout_main)
+        self.label_move.raise_()
+        self.setWindowTitle(u'摄像头')
+
+        '''
+        # 设置背景颜色
+        palette1 = QPalette()
+        palette1.setBrush(self.backgroundRole(),QBrush(QPixmap('background.jpg')))
+        self.setPalette(palette1)
+        '''
+
+    def slot_init(self):  # 建立通信连接
+        self.button_open_camera.clicked.connect(self.button_open_camera_click)
+        self.timer_camera.timeout.connect(self.show_camera)
+        self.button_close.clicked.connect(self.button_close_clicked)
+
+    def button_close_clicked(self):
+        glo.lock("close")
+        glo.set_value("close", True)
+        glo.release("close")
+        """ close(self) -> bool """
+        self.close()
+
+    def button_open_camera_click(self):
+        if self.timer_camera.isActive() == False:
+            flag = self.cap.open(self.CAM_NUM)
+            if flag == False:
+                msg = QtWidgets.QMessageBox.Warning(self, u'Warning', u'请检测相机与电脑是否连接正确',
+                                                    buttons=QtWidgets.QMessageBox.Ok,
+                                                    defaultButton=QtWidgets.QMessageBox.Ok)
+                # if msg==QtGui.QMessageBox.Cancel:
+                #                     pass
+            else:
+                glo.lock("close")
+                glo.set_value("close", False)
+                glo.release("close")
+                self.rec.start()
+                self.name.start()
+                self.timer_camera.start(30)
+                self.button_open_camera.setText(u'关闭相机')
+        else:
+            glo.lock("close")
+            glo.set_value("close", True)
+            glo.release("close")
+            self.timer_camera.stop()
+            self.cap.release()
+            self.label_show_camera.clear()
+            self.button_open_camera.setText(u'打开相机')
+
+    def show_camera(self):
+        flag, self.image = self.cap.read()
+        show = cv2.resize(self.image, (640, 480))
+        glo.lock("show_img")
+        glo.set_value("show_img", copy.copy(show))
+        glo.release("show_img")
+        glo.lock("rects")
+        r_rects = glo.get_value("rects")
+        rects = copy.copy(r_rects)
+        glo.release("rects")
+        for rect in rects:
+            top, right, bottom, left = rect
+            cv2.rectangle(show, (left, bottom), (right, top), [255, 0, 0], thickness=2)  # 画框圈出脸部
+        show = cv2.cvtColor(show, cv2.COLOR_BGR2RGB)
+        showImage = QtGui.QImage(show.data, show.shape[1], show.shape[0], QtGui.QImage.Format_RGB888)
+        self.label_show_camera.setPixmap(QtGui.QPixmap.fromImage(showImage))
+
+    def closeEvent(self, event):
+        ok = QtWidgets.QPushButton()
+        cancel = QtWidgets.QPushButton()
+        msg = QtWidgets.QMessageBox(QtWidgets.QMessageBox.Warning, u'关闭', u'是否关闭！')
+        msg.addButton(ok, QtWidgets.QMessageBox.ActionRole)
+        msg.addButton(cancel, QtWidgets.QMessageBox.RejectRole)
+        ok.setText(u'确定')
+        cancel.setText(u'取消')
+        if msg.exec_() == QtWidgets.QMessageBox.RejectRole:
+            event.ignore()
+        else:
+            if self.cap.isOpened():
+                self.cap.release()
+            if self.timer_camera.isActive():
+                self.timer_camera.stop()
+            event.accept()
 
 
-class OpcvCapture(threading.Thread):
-    def __init__(self, win_name, cam_name):
-        super().__init__()
-        self.cam_name = cam_name
-        self.win_name = win_name
-
-    def run(self):
-        capture = cv2.VideoCapture(glo.CAM_NAME)
-        capture.set(cv2.CAP_PROP_FRAME_WIDTH, glo.CAP_WIDTH)
-        capture.set(cv2.CAP_PROP_FRAME_HEIGHT, glo.CAP_HEIGHT)
-        while True:            # 获取一帧
-            ret, frame = capture.read()            # 获取的帧送入检测，绘制检测结果后返回,自拍模式做镜像
-            # frame = cv2.resize(frame, (0, 0), fx=0.25, fy=0.25)
-            show_img = cv2.flip(frame, flipCode=1)
-
-            glo.lock("show_img")
-            glo.set_value("show_img", show_img)
-            glo.release("show_img")
-
-            glo.lock("rects")
-            r_rects = glo.get_value("rects")
-            rects = copy.copy(r_rects)
-            glo.release("rects")
-
-            show_img2 = copy.copy(show_img)
-
-            for rect in rects:
-                top, right, bottom, left = rect
-                cv2.rectangle(show_img2, (left, bottom), (right, top), [255, 0, 0], thickness=2) #画框圈出脸部
-            cv2.imshow(glo.WIN_NAME, show_img2)
-            cv2.waitKey(int(1000/60))  # 1000/帧数
-
-
-if __name__ == "__main__":
+if __name__ == '__main__':
     glo.__init__()
-    cam = OpcvCapture("camera1", 0)
-    rec = GetRectangle()
-    name = GetName()
-    cam.start()
-    rec.start()
-    name.start()
+    App = QApplication(sys.argv)
+    win = Ui_MainWindow()
+    win.show()
+    sys.exit(App.exec_())

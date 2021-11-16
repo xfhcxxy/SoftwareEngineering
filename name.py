@@ -69,7 +69,7 @@ class GetName(threading.Thread):
                     closed = ear_left < 0.2 and ear_right < 0.2
                     eye_close = eye_close or closed
                     eye_open = eye_open or not closed
-                    print(eye_close, eye_open)
+                    print("睁眼："+str(eye_open)+" "+"闭眼："+str(eye_close))
                     glo.lock("face_now")
                     glo.set_value('eye_close', eye_close)
                     glo.set_value('eye_open', eye_open)
@@ -81,3 +81,8 @@ class GetName(threading.Thread):
                 if time.time() - start > 2:
                     break
             """
+            glo.lock("close")
+            close = glo.get_value("close")
+            glo.release("close")
+            if close:
+                break;

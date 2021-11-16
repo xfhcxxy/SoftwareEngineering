@@ -3,7 +3,7 @@ import os
 import threading
 import time
 import cv2
-
+import MySQLdb
 """全局常量"""
 ########################################################################################
 """相机参数"""
@@ -28,6 +28,7 @@ def __init__():
     mutex['show_img'] = threading.Lock()
     mutex['face_now'] = threading.Lock()
     mutex['rects'] = threading.Lock()
+    mutex['close'] = threading.Lock()
     global _global_dict
     _global_dict = {}
     _global_dict["show_img"] = np.zeros((CAP_HEIGHT, CAP_WIDTH, 3), np.uint8)
@@ -37,6 +38,7 @@ def __init__():
     _global_dict["exist_one_face"] = False
     _global_dict["eye_close"] = False
     _global_dict["eye_open"] = False
+    _global_dict["close"] = False
     global T0
     T0 = time.time()
 

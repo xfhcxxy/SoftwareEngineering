@@ -46,3 +46,9 @@ class GetRectangle(threading.Thread):
                     glo.release("face_now")
             else:
                 clear_info()
+
+            glo.lock("close")
+            close = glo.get_value("close")
+            glo.release("close")
+            if close:
+                break;
