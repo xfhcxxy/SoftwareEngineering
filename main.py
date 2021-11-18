@@ -1,15 +1,16 @@
 import sys
 import os
 import cv2
-
+import copy
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 from PyQt5.QtGui import QPalette, QBrush, QPixmap
+
 import glo
-import copy
 from name import *
 from rectangle import *
+from admin_window import *
 
 class Ui_MainWindow(QtWidgets.QWidget):
     def __init__(self, parent=None):
@@ -17,14 +18,13 @@ class Ui_MainWindow(QtWidgets.QWidget):
 
         self.timer_camera = QtCore.QTimer()  # 初始化定时器
         self.cap = cv2.VideoCapture()  # 初始化摄像头
+        self.admin_window = AdminWindow()
         self.CAM_NUM = 0
         self.set_ui()
         self.slot_init()
         self.__flag_work = 0
         self.x = 0
         self.count = 0
-        self.rec = GetRectangle()
-        self.name = GetName()
 
     def set_ui(self):
         self.__layout_main = QtWidgets.QHBoxLayout()  # 采用QHBoxLayout类，按照从左到右的顺序来添加控件
@@ -32,42 +32,37 @@ class Ui_MainWindow(QtWidgets.QWidget):
         self.__layout_data_show = QtWidgets.QVBoxLayout()  # QVBoxLayout类垂直地摆放小部件
 
         self.button_open_camera = QtWidgets.QPushButton(u'打开相机')
+        self.button_open_admin = QtWidgets.QPushButton(u'管理员登录')
         self.button_close = QtWidgets.QPushButton(u'退出')
 
-        # button颜色修改
-        button_color = [self.button_open_camera, self.button_close]
-        for i in range(2):
-            button_color[i].setStyleSheet("QPushButton{color:black}"
-                                           "QPushButton:hover{color:red}"
-                                           "QPushButton{background-color:rgb(78,255,255)}"
-                                           "QpushButton{border:2px}"
-                                           "QPushButton{border_radius:10px}"
-                                           "QPushButton{padding:2px 4px}")
-
         self.button_open_camera.setMinimumHeight(50)
+        self.button_open_admin.setMinimumHeight(50)
         self.button_close.setMinimumHeight(50)
-
-        # move()方法是移动窗口在屏幕上的位置到x = 500，y = 500的位置上
-        self.move(500, 500)
 
         # 信息显示
         self.label_show_camera = QtWidgets.QLabel()
-        self.label_move = QtWidgets.QLabel()
-        self.label_move.setFixedSize(100, 100)
+        self.label_show_name = QtWidgets.QLabel()
 
         self.label_show_camera.setFixedSize(641, 481)
         self.label_show_camera.setAutoFillBackground(False)
+        self.label_show_name.setFixedSize(150, 50)
+        self.label_show_name.setText("未检测到人脸")
 
+        """
+        布局
+        """
         self.__layout_fun_button.addWidget(self.button_open_camera)
+        self.__layout_fun_button.addWidget(self.button_open_admin)
         self.__layout_fun_button.addWidget(self.button_close)
-        self.__layout_fun_button.addWidget(self.label_move)
-
-        self.__layout_main.addLayout(self.__layout_fun_button)
+        self.__layout_data_show.addWidget(self.label_show_name)
+        self.__layout_data_show.addLayout(self.__layout_fun_button)
+        self.__layout_main.addStretch(1)
         self.__layout_main.addWidget(self.label_show_camera)
+        self.__layout_main.addLayout(self.__layout_data_show)
+
 
         self.setLayout(self.__layout_main)
-        self.label_move.raise_()
-        self.setWindowTitle(u'摄像头')
+        self.setWindowTitle(u'Team5-耿申奥、刘欣龙、向宇')
 
         '''
         # 设置背景颜色
@@ -78,14 +73,12 @@ class Ui_MainWindow(QtWidgets.QWidget):
 
     def slot_init(self):  # 建立通信连接
         self.button_open_camera.clicked.connect(self.button_open_camera_click)
-        self.timer_camera.timeout.connect(self.show_camera)
+        self.button_open_admin.clicked.connect(self.button_open_admin_click)
         self.button_close.clicked.connect(self.button_close_clicked)
 
+        self.timer_camera.timeout.connect(self.show_camera)
+
     def button_close_clicked(self):
-        glo.lock("close")
-        glo.set_value("close", True)
-        glo.release("close")
-        """ close(self) -> bool """
         self.close()
 
     def button_open_camera_click(self):
@@ -101,22 +94,28 @@ class Ui_MainWindow(QtWidgets.QWidget):
                 glo.lock("close")
                 glo.set_value("close", False)
                 glo.release("close")
+                self.rec = GetRectangle()
+                self.name = GetName()
                 self.rec.start()
                 self.name.start()
                 self.timer_camera.start(30)
                 self.button_open_camera.setText(u'关闭相机')
         else:
             glo.lock("close")
-            glo.set_value("close", True)
+            glo.set_value("close", True)  # 给画框线程和识别线程信号，令其停止
             glo.release("close")
+            self.label_show_name.setText(glo.DEFAULT_NAME)
             self.timer_camera.stop()
             self.cap.release()
             self.label_show_camera.clear()
             self.button_open_camera.setText(u'打开相机')
 
+    def button_open_admin_click(self):
+        self.admin_window.show()
+
     def show_camera(self):
         flag, self.image = self.cap.read()
-        show = cv2.resize(self.image, (640, 480))
+        show = cv2.resize(self.image, (glo.CAP_WIDTH, glo.CAP_HEIGHT))
         glo.lock("show_img")
         glo.set_value("show_img", copy.copy(show))
         glo.release("show_img")
@@ -130,6 +129,11 @@ class Ui_MainWindow(QtWidgets.QWidget):
         show = cv2.cvtColor(show, cv2.COLOR_BGR2RGB)
         showImage = QtGui.QImage(show.data, show.shape[1], show.shape[0], QtGui.QImage.Format_RGB888)
         self.label_show_camera.setPixmap(QtGui.QPixmap.fromImage(showImage))
+        glo.lock("name")
+        r_name = glo.get_value("name")
+        name = copy.copy(r_name)
+        glo.release("name")
+        self.label_show_name.setText(name)
 
     def closeEvent(self, event):
         ok = QtWidgets.QPushButton()
@@ -142,6 +146,11 @@ class Ui_MainWindow(QtWidgets.QWidget):
         if msg.exec_() == QtWidgets.QMessageBox.RejectRole:
             event.ignore()
         else:
+            glo.lock("close")
+            glo.set_value("close", True)
+            glo.release("close")
+            if self.admin_window.isEnabled():
+                self.admin_window.close()
             if self.cap.isOpened():
                 self.cap.release()
             if self.timer_camera.isActive():
@@ -152,6 +161,7 @@ class Ui_MainWindow(QtWidgets.QWidget):
 if __name__ == '__main__':
     glo.__init__()
     App = QApplication(sys.argv)
+    App.setStyleSheet(open('styleSheet.qss', encoding='utf-8').read())
     win = Ui_MainWindow()
     win.show()
     sys.exit(App.exec_())

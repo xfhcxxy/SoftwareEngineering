@@ -56,11 +56,17 @@ class GetName(threading.Thread):
                     for i in range(len(self.images)):
                         result = fr.compare_faces([face_img_encoded], self.current_images_encoded[i], tolerance=0.39)
                         if result[0]:
-                            print("匹配：" + self.images[i][:-4])
+                            glo.lock("name")
+                            glo.set_value("name", "匹配：" + self.images[i][:-4])
+                            glo.release("name")
+
                 else:
                     face_landmark_list = fr.face_landmarks(face_img)
                     if len(face_landmark_list) == 0:
                         continue
+                    glo.lock("name")
+                    glo.set_value("name", "请眨眼！")
+                    glo.release("name")
                     face_landmark = face_landmark_list[0]
                     left_eye = face_landmark['left_eye']
                     right_eye = face_landmark['right_eye']
@@ -69,7 +75,6 @@ class GetName(threading.Thread):
                     closed = ear_left < 0.2 and ear_right < 0.2
                     eye_close = eye_close or closed
                     eye_open = eye_open or not closed
-                    print("睁眼："+str(eye_open)+" "+"闭眼："+str(eye_close))
                     glo.lock("face_now")
                     glo.set_value('eye_close', eye_close)
                     glo.set_value('eye_open', eye_open)
@@ -85,4 +90,4 @@ class GetName(threading.Thread):
             close = glo.get_value("close")
             glo.release("close")
             if close:
-                break;
+                break

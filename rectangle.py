@@ -14,6 +14,9 @@ def clear_info():
     glo.set_value("eye_close", False)
     glo.set_value("eve_open", False)
     glo.release("face_now")
+    glo.lock("name")
+    glo.set_value("name", glo.DEFAULT_NAME)
+    glo.release("name")
 
 
 class GetRectangle(threading.Thread):
@@ -21,6 +24,7 @@ class GetRectangle(threading.Thread):
         super().__init__()
 
     def run(self):
+        clear_info()
         while True:
             glo.lock("show_img")
             r_show_img = glo.get_value("show_img")
@@ -29,7 +33,6 @@ class GetRectangle(threading.Thread):
 
             rgb_show_img = show_img[:, :, ::-1]  # 从BGR转换为RBG
             rects = fr.face_locations(rgb_show_img)  # 寻找并保存人脸框的信息
-            # print(len(rects))
             glo.lock("rects")
             glo.set_value("rects", rects)
             glo.release("rects")
@@ -51,4 +54,5 @@ class GetRectangle(threading.Thread):
             close = glo.get_value("close")
             glo.release("close")
             if close:
-                break;
+                clear_info()
+                break

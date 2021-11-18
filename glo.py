@@ -13,6 +13,9 @@ WIN_NAME = "homework"
 """"像素"""
 CAP_WIDTH = int(640)
 CAP_HEIGHT = int(480)
+
+
+DEFAULT_NAME = "未检测到人脸"
 ########################################################################################
 
 
@@ -29,16 +32,18 @@ def __init__():
     mutex['face_now'] = threading.Lock()
     mutex['rects'] = threading.Lock()
     mutex['close'] = threading.Lock()
+    mutex['name'] = threading.Lock()
     global _global_dict
     _global_dict = {}
     _global_dict["show_img"] = np.zeros((CAP_HEIGHT, CAP_WIDTH, 3), np.uint8)
     _global_dict["known_faces"] = os.listdir('images')
     _global_dict["rects"] = []
-    _global_dict["names"] = []
+    _global_dict["name"] = DEFAULT_NAME
     _global_dict["exist_one_face"] = False
     _global_dict["eye_close"] = False
     _global_dict["eye_open"] = False
     _global_dict["close"] = False
+
     global T0
     T0 = time.time()
 
