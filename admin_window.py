@@ -13,9 +13,9 @@ class AdminWindow(QtWidgets.QMainWindow):
         super().__init__()
         self.cap = cv2.VideoCapture()  # 初始化摄像头
         self.timer_camera = QtCore.QTimer()  # 初始化定时器
+        self.db = DataBase()
         self.init_ui()
         self.slot_init()
-        self.db = DataBase()
 
     def init_ui(self):
         self.setWindowTitle("管理员")
@@ -27,6 +27,8 @@ class AdminWindow(QtWidgets.QMainWindow):
         self.left_design()
         self.right_design()
         self.setCentralWidget(self.main_widget)  # 设置窗口主部件
+
+
 
     def slot_init(self):
         self.timer_camera.timeout.connect(self.show_camera)
@@ -41,6 +43,8 @@ class AdminWindow(QtWidgets.QMainWindow):
         self.button_left_8.clicked.connect(self.button_left_8_click)
 
         self.button_ask_1.clicked.connect(self.take_photo_1)
+
+        self.button_ask_5.clicked.connect(self.show_data_face_info)
 
     """
     左窗口
@@ -175,7 +179,10 @@ class AdminWindow(QtWidgets.QMainWindow):
         print("待写4")
 
     def set_right_widget_5(self):
-        print("待写5")
+        self.table_5 = QtWidgets.QTableWidget()
+        self.button_ask_5 = QtWidgets.QPushButton(u"查询")
+        self.right_layout_5.addWidget(self.table_5, 0, 2, 10, 10)
+        self.right_layout_5.addWidget(self.button_ask_5, 11, 5, 1, 2)
 
     def set_right_widget_6(self):
         print("待写6")
@@ -297,16 +304,6 @@ class AdminWindow(QtWidgets.QMainWindow):
                     msg_text = "密码只能为数字"
                 msg = QtWidgets.QMessageBox.information(self, "警告！！！", msg_text, QMessageBox.Yes)
 
-
-
-
-
-
-
-
-
-
-
     def show_camera(self):
         flag, self.image = self.cap.read()
         show = cv2.resize(self.image, (glo.CAP_WIDTH, glo.CAP_HEIGHT))
@@ -314,3 +311,33 @@ class AdminWindow(QtWidgets.QMainWindow):
         showImage = QtGui.QImage(show.data, show.shape[1], show.shape[0], QtGui.QImage.Format_RGB888)
         self.label_show_camera_1.setPixmap(QtGui.QPixmap.fromImage(showImage))
 
+    def show_data_face_info(self, _name=None, _id=None, _create_time=None, _last_mod_time=None):
+        data, x, y = self.db.get_all_info()
+        self.table_5.setRowCount(x)
+        self.table_5.setColumnCount(y-1)
+        for i in range(x):
+            for j in range(y):
+                if j != 1:  # 1是BLOB格式照片
+                    temp_data = QTableWidgetItem(str(data[i][j]))
+                    self.table_5.setItem(i, j, temp_data)
+                else:
+                    face_info_img = QtGui.QImage.fromData(data[i][j])
+                    face_info_pixmap = QtGui.QPixmap.fromImage(face_info_img)
+                    face_info_pixmap
+                    face_info_label = QtWidgets.QLabel()
+                    face_info_label.setScaledContents(True)
+                    face_info_label.setPixmap(face_info_pixmap)
+                    face_info_label.setMaximumSize(200, 200)
+                    self.table_5.setCellWidget(i, j, face_info_label)
+
+        self.table_5.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)  # 自动分配列宽
+        self.table_5.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeToContents)
+        self.table_5.verticalHeader().setDefaultSectionSize(200)
+        self.table_5.setColumnWidth(1, 200)
+
+    def closeEvent(self, event):
+        if self.cap.isOpened():
+            self.cap.release()
+        if self.timer_camera.isActive():
+            self.timer_camera.stop()
+        event.accept()
