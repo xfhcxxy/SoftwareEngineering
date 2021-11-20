@@ -70,12 +70,20 @@ class GetName(threading.Thread):
                     if len(faces_img_encoded) == 0:
                         continue
                     face_img_encoded = faces_img_encoded[0]
+                    get_name = False
                     for i in range(len(self.images)):
                         result = fr.compare_faces([face_img_encoded], self.current_images_encoded[i], tolerance=0.39)
                         if result[0]:
                             glo.lock("name")
                             glo.set_value("name", "匹配：" + self.images[i])
                             glo.release("name")
+                            get_name = True
+                            break
+                    if not get_name:
+                            glo.lock("name")
+                            glo.set_value("name", "未匹配")
+                            glo.release("name")
+
 
                 else:
                     face_landmark_list = fr.face_landmarks(face_img)
