@@ -17,6 +17,8 @@ class AdminWindow(QtWidgets.QMainWindow):
         self.id = -1
         self.init_ui()
         self.slot_init()
+        self.WIDTH = 200
+        self.HEIGHT = 150
 
     def init_ui(self):
         self.setWindowTitle("管理员")
@@ -199,10 +201,10 @@ class AdminWindow(QtWidgets.QMainWindow):
         self.line_edit_id_4.setText(self.db.get_id_num(id))
 
         self.label_show_camera = QtWidgets.QLabel()
-        self.label_show_camera.setFixedSize(320, 240)
+        self.label_show_camera.setFixedSize(self.WIDTH, self.HEIGHT)
         self.label_show_camera.setAutoFillBackground(False)
         self.label_show_pic_4 = QtWidgets.QLabel()
-        self.label_show_pic_4.setFixedSize(320, 240)
+        self.label_show_pic_4.setFixedSize(self.WIDTH, self.HEIGHT)
         self.label_show_pic_4.setAutoFillBackground(False)
         face_img = self.db.get_face_img(id)
         face_info_img = QtGui.QImage.fromData(face_img)
@@ -391,7 +393,7 @@ class AdminWindow(QtWidgets.QMainWindow):
 
     def show_camera(self):
         flag, self.image = self.cap.read()
-        show = cv2.resize(self.image, (glo.CAP_WIDTH, glo.CAP_HEIGHT))
+        show = cv2.resize(self.image, (self.WIDTH, self.HEIGHT))
         show = cv2.cvtColor(show, cv2.COLOR_BGR2RGB)
         showImage = QtGui.QImage(show.data, show.shape[1], show.shape[0], QtGui.QImage.Format_RGB888)
         self.label_show_camera.setPixmap(QtGui.QPixmap.fromImage(showImage))
@@ -411,14 +413,14 @@ class AdminWindow(QtWidgets.QMainWindow):
                     face_info_label = QtWidgets.QLabel()
                     face_info_label.setScaledContents(True)
                     face_info_label.setPixmap(face_info_pixmap)
-                    face_info_label.setMaximumSize(200, 200)
+                    face_info_label.setMaximumSize(self.WIDTH, self.HEIGHT)
                     self.table_5.setCellWidget(i, j, face_info_label)
 
         self.table_5.setEditTriggers(QAbstractItemView.NoEditTriggers)
         self.table_5.setHorizontalHeaderLabels(['编号', '照片', '姓名', 'ID号', '录入时间', '最后修改时间', '操作'])
         self.table_5.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)  # 自动分配列宽
         self.table_5.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeToContents)
-        self.table_5.verticalHeader().setDefaultSectionSize(200)
+        self.table_5.verticalHeader().setDefaultSectionSize(self.HEIGHT)
 
     def show_to_mod_face_info(self, _name=None, _id=None, _create_time=None, _last_mod_time=None):
         data, x, y = self.db.get_all_info()
@@ -432,7 +434,7 @@ class AdminWindow(QtWidgets.QMainWindow):
                     face_info_label = QtWidgets.QLabel()
                     face_info_label.setScaledContents(True)
                     face_info_label.setPixmap(face_info_pixmap)
-                    face_info_label.setMaximumSize(200, 200)
+                    face_info_label.setMaximumSize(self.WIDTH, self.HEIGHT)
                     self.table_4.setCellWidget(i, j, face_info_label)
                 elif j == y - 1:
                     self.table_4.setCellWidget(i, j, self.buttonForRow(str(data[i][0])))
@@ -444,7 +446,7 @@ class AdminWindow(QtWidgets.QMainWindow):
         self.table_4.setHorizontalHeaderLabels(['编号', '照片', '姓名', 'ID号', '录入时间', '最后修改时间', '操作'])
         self.table_4.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)  # 自动分配列宽
         self.table_4.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeToContents)
-        self.table_4.verticalHeader().setDefaultSectionSize(200)
+        self.table_4.verticalHeader().setDefaultSectionSize(self.HEIGHT)
 
     def buttonForRow(self,id):
         widget = QtWidgets.QWidget()

@@ -36,7 +36,6 @@ def __init__():
     global _global_dict
     _global_dict = {}
     _global_dict["show_img"] = np.zeros((CAP_HEIGHT, CAP_WIDTH, 3), np.uint8)
-    _global_dict["known_faces"] = os.listdir('images')
     _global_dict["rects"] = []
     _global_dict["name"] = DEFAULT_NAME
     _global_dict["exist_one_face"] = False

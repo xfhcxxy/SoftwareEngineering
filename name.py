@@ -5,16 +5,33 @@ import os
 import glo
 import face_recognition as fr
 from scipy.spatial import distance as dist
+import numpy as np
+from db import *
+import cv2
 
 
 class GetName(threading.Thread):
     def __init__(self):
         super().__init__()
-        self.current_images_encoded = []
-        self.images = os.listdir('images')
+        self.db = DataBase()
+        self.load()
+        """
         for image in self.images:
             current_image = fr.load_image_file("images/" + image)
             self.current_images_encoded.append(fr.face_encodings(current_image)[0])
+        """
+
+    def load(self):
+        self.current_images_encoded = []
+        self.images = []
+        data, x, y = self.db.get_all_info()
+        for i in range(x):
+            self.images.append(data[i][2])
+            fout = open("temporary.png", "wb")
+            fout.write(data[i][1])
+            current_image = fr.load_image_file("temporary.png")
+            self.current_images_encoded.append(fr.face_encodings(current_image)[0])
+
 
     """
     计算眼睛纵横比
@@ -57,7 +74,7 @@ class GetName(threading.Thread):
                         result = fr.compare_faces([face_img_encoded], self.current_images_encoded[i], tolerance=0.39)
                         if result[0]:
                             glo.lock("name")
-                            glo.set_value("name", "匹配：" + self.images[i][:-4])
+                            glo.set_value("name", "匹配：" + self.images[i])
                             glo.release("name")
 
                 else:

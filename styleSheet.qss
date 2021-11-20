@@ -35,7 +35,7 @@ QTreeView::branch:open:has-children:has-siblings  {
 QLabel{
     font-size: 18px;
     border: 1px solid #BBBBBB;
-    border-width: 1px 1px 0px 1px;
+    border-width: 1px 1px 1px 1px;
 }
 
 /* 设置视图样式 */
