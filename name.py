@@ -32,7 +32,6 @@ class GetName(threading.Thread):
             current_image = fr.load_image_file("temporary.png")
             self.current_images_encoded.append(fr.face_encodings(current_image)[0])
 
-
     """
     计算眼睛纵横比
     """
@@ -42,6 +41,16 @@ class GetName(threading.Thread):
         C = dist.euclidean(eye[0], eye[3])
         ear = (A + B) / (2.0 * C)
         return ear
+
+    def set_name(self, name):
+        glo.lock("name")
+        glo.lock("face_now")
+        r_exist_one_face = glo.get_value("exist_one_face")
+        exist_one_face = copy.copy(r_exist_one_face)
+        glo.release("face_now")
+        if exist_one_face:
+            glo.set_value("name", name)
+        glo.release("name")
 
     def run(self):
         while True:
@@ -74,24 +83,16 @@ class GetName(threading.Thread):
                     for i in range(len(self.images)):
                         result = fr.compare_faces([face_img_encoded], self.current_images_encoded[i], tolerance=0.39)
                         if result[0]:
-                            glo.lock("name")
-                            glo.set_value("name", "匹配：" + self.images[i])
-                            glo.release("name")
+                            self.set_name("匹配：" + self.images[i])
                             get_name = True
                             break
                     if not get_name:
-                            glo.lock("name")
-                            glo.set_value("name", "未匹配")
-                            glo.release("name")
-
-
+                        self.set_name("未匹配")
                 else:
                     face_landmark_list = fr.face_landmarks(face_img)
                     if len(face_landmark_list) == 0:
                         continue
-                    glo.lock("name")
-                    glo.set_value("name", "请眨眼！")
-                    glo.release("name")
+                    self.set_name("请眨眼")
                     face_landmark = face_landmark_list[0]
                     left_eye = face_landmark['left_eye']
                     right_eye = face_landmark['right_eye']
@@ -101,16 +102,13 @@ class GetName(threading.Thread):
                     eye_close = eye_close or closed
                     eye_open = eye_open or not closed
                     glo.lock("face_now")
-                    glo.set_value('eye_close', eye_close)
-                    glo.set_value('eye_open', eye_open)
+                    r_exist_one_face = glo.get_value("exist_one_face")
+                    exist_one_face = copy.copy(r_exist_one_face)
+                    if exist_one_face:
+                        glo.set_value('eye_close', eye_close)
+                        glo.set_value('eye_open', eye_open)
                     glo.release("face_now")
 
-            """
-            start = time.time()
-            while True:
-                if time.time() - start > 2:
-                    break
-            """
             glo.lock("close")
             close = glo.get_value("close")
             glo.release("close")

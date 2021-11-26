@@ -4,6 +4,7 @@ import threading
 import time
 import cv2
 import MySQLdb
+import copy
 """全局常量"""
 ########################################################################################
 """相机参数"""
@@ -24,6 +25,8 @@ DEFAULT_NAME = "未检测到人脸"
 ########################################################################################
 mutex = {}
 T0 = time.time()
+is_login = False
+login_name = "未登录"
 
 
 def __init__():
@@ -48,7 +51,7 @@ def __init__():
 
 
 def set_value(key, value):
-    _global_dict[key] = value
+    _global_dict[key] = copy.copy(value)
 
 
 def get_value(key):

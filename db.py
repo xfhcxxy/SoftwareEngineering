@@ -33,30 +33,16 @@ class DataBase:
         self.db.commit()
         cursor.close()
 
-    def get_name(self, id):
+    def get_info_before_update(self, id):
         cursor = self.db.cursor()
-        cursor.execute("SELECT Name FROM face_info WHERE Id =" + id)
-        # cursor.execute("SELECT Name FROM face_info WHERE Id = 1")
-        name = cursor.fetchone()
+        cursor.execute("SELECT FaceImg, Name, IdNum FROM face_info WHERE Id =" + id)
+        data = cursor.fetchone()
         cursor.close()
-        return str(name[0])
+        return data[0], str(data[1]), str(data[2])
 
-    def get_id_num(self, id):
-        cursor = self.db.cursor()
-        cursor.execute("SELECT IdNum FROM face_info WHERE Id =" + id)
-        # cursor.execute("SELECT Name FROM face_info WHERE Id = 1")
-        id_num = cursor.fetchone()
-        cursor.close()
-        return str(id_num[0])
-
-    def get_face_img(self, id):
-        cursor = self.db.cursor()
-        cursor.execute("SELECT FaceImg FROM face_info WHERE Id =" + id)
-        # cursor.execute("SELECT Name FROM face_info WHERE Id = 1")
-        face_img = cursor.fetchone()
-        cursor.close()
-        return face_img[0]
-
+    """
+    查询所有人脸信息
+    """
     def get_all_info(self):
         cursor = self.db.cursor()
         cursor.execute("SELECT * FROM face_info")
@@ -69,6 +55,49 @@ class DataBase:
                 _data.append(info)
                 x += 1
         return _data, x, y
+
+
+    def get_face_info_num(self):
+        cursor = self.db.cursor()
+        cursor.execute("SELECT COUNT(*) FROM face_info")
+        num = cursor.fetchone()
+        cursor.close()
+        return num
+
+    """
+    获取所有操作记录信息
+    """
+    def get_all_ope_info(self):
+        cursor = self.db.cursor()
+        cursor.execute("SELECT * FROM ope_history")
+        data = cursor.fetchall()
+        x = 0
+        y = 4
+        _data = []
+        for info in data:
+            _data.append(info)
+            x += 1
+        return _data, x, y
+
+    """
+    增加一条操作记录，ope_tyoe=1为删除，=0为修改
+    """
+    def add_ope_history(self, user_name, user_id, ope_type):
+        cursor = self.db.cursor()
+        dt = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        cursor.execute("INSERT INTO delete_history VALUES(%s,%s,%s,%s)", (dt, user_name, int(user_id), ope_type))
+        self.db.commit()
+        cursor.close()
+
+    """
+    根据管理员姓名查询密码
+    """
+    def login(self, login_name):
+        cursor = self.db.cursor()
+        cursor.execute(u"SELECT Name, Password FROM admin_passwd WHERE Name='" + login_name + "'")
+        data = cursor.fetchall()
+        cursor.close()
+        return data
 
 
 # if __name__ == '__main__':

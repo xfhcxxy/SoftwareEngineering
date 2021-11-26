@@ -1,5 +1,6 @@
 import copy
 import cv2
+import face_recognition as fr
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
@@ -9,16 +10,17 @@ from db import *
 
 
 class AdminWindow(QtWidgets.QMainWindow):
-    def __init__(self):
+    def __init__(self, admin_name="未登录"):
         super().__init__()
         self.cap = cv2.VideoCapture()  # 初始化摄像头
         self.timer_camera = QtCore.QTimer()  # 初始化定时器
         self.db = DataBase()
-        self.id = -1
-        self.init_ui()
-        self.slot_init()
         self.WIDTH = 200
         self.HEIGHT = 150
+        self.id = -1
+        self.admin_name = admin_name
+        self.init_ui()
+        self.slot_init()
 
     def init_ui(self):
         self.setWindowTitle("管理员")
@@ -42,11 +44,12 @@ class AdminWindow(QtWidgets.QMainWindow):
         self.button_left_6.clicked.connect(self.button_left_6_click)
         self.button_left_7.clicked.connect(self.button_left_7_click)
         self.button_left_8.clicked.connect(self.button_left_8_click)
+        self.button_left_9.clicked.connect(self.button_left_9_click)
 
         self.button_ask_1.clicked.connect(self.take_photo_1)
-
         self.button_ask_4.clicked.connect(self.show_to_mod_face_info)
         self.button_ask_5.clicked.connect(self.show_data_face_info)
+        self.button_ask_6.clicked.connect(self.ope_show)
 
     """
     左窗口
@@ -58,7 +61,8 @@ class AdminWindow(QtWidgets.QMainWindow):
         self.left_layout = QtWidgets.QGridLayout()  # 创建左侧部件的网格布局层
         self.left_widget.setLayout(self.left_layout)  # 设置左侧部件布局为网格
 
-        self.label_left_1 = QtWidgets.QLabel("管理员功能")
+        self.label_left_1 = QtWidgets.QLabel("您好，" + self.admin_name)
+        self.label_left_1.setAlignment(Qt.AlignCenter)
         self.label_left_1.setObjectName('admin_label')
         self.label_left_1.setMaximumHeight(50)
 
@@ -78,6 +82,8 @@ class AdminWindow(QtWidgets.QMainWindow):
         self.button_left_7.setObjectName('left_button')
         self.button_left_8 = QtWidgets.QPushButton("关于我们")
         self.button_left_8.setObjectName('left_button')
+        self.button_left_9 = QtWidgets.QPushButton("关闭")
+        self.button_left_9.setObjectName('left_button')
 
         self.left_layout.addWidget(self.label_left_1, 1, 0, 1, 3)
         self.left_layout.addWidget(self.button_left_1, 2, 0, 1, 3)
@@ -88,6 +94,7 @@ class AdminWindow(QtWidgets.QMainWindow):
         self.left_layout.addWidget(self.button_left_6, 7, 0, 1, 3)
         self.left_layout.addWidget(self.button_left_7, 8, 0, 1, 3)
         self.left_layout.addWidget(self.button_left_8, 9, 0, 1, 3)
+        self.left_layout.addWidget(self.button_left_9, 10, 0, 1, 3)
 
         self.main_layout.addWidget(self.left_widget, 0, 0, 12, 2)
 
@@ -160,9 +167,9 @@ class AdminWindow(QtWidgets.QMainWindow):
         self.label_id_1.setText("请输入ID：")
         self.line_edit_id_1 = QtWidgets.QLineEdit()
 
-        self.label_show_camera = QtWidgets.QLabel()
-        self.label_show_camera.setFixedSize(641, 481)
-        self.label_show_camera.setAutoFillBackground(False)
+        self.label_show_camera_1 = QtWidgets.QLabel()
+        self.label_show_camera_1.setFixedSize(641, 481)
+        self.label_show_camera_1.setAutoFillBackground(False)
 
         self.button_ask_1 = QtWidgets.QPushButton(u'打开相机')
 
@@ -171,7 +178,7 @@ class AdminWindow(QtWidgets.QMainWindow):
         self.right_layout_1.addWidget(self.line_edit_name_1, 0, 4, 1, 6)
         self.right_layout_1.addWidget(self.label_id_1, 2, 2, 1, 2)
         self.right_layout_1.addWidget(self.line_edit_id_1, 2, 4, 1, 6)
-        self.right_layout_1.addWidget(self.label_show_camera, 4, 2, 1, 10)
+        self.right_layout_1.addWidget(self.label_show_camera_1, 4, 2, 1, 10)
         self.right_layout_1.addWidget(self.button_ask_1, 5, 5, 1, 2)
 
 
@@ -187,26 +194,28 @@ class AdminWindow(QtWidgets.QMainWindow):
         self.right_layout_4.addWidget(self.table_4, 0, 2, 10, 10)
         self.right_layout_4.addWidget(self.button_ask_4, 11, 5, 1, 2)
 
+        self.label_show_camera_4 = QtWidgets.QLabel()
+        self.label_show_camera_4.setFixedSize(self.WIDTH, self.HEIGHT)
+        self.label_show_camera_4.setAutoFillBackground(False)
+
     def set_right_widget_update_4(self, id):
+        face_img, name_before, id_num_before = self.db.get_info_before_update(id)
+
         self.label_name_4 = QtWidgets.QLabel()
         self.label_name_4.setText("请输入修改后姓名：")
         self.line_edit_name_4 = QtWidgets.QLineEdit()
         self.line_edit_name_4.setFont(QFont('Arial', 14))
-        self.line_edit_name_4.setText(self.db.get_name(id))
+        self.line_edit_name_4.setText(name_before)
 
         self.label_id_4 = QtWidgets.QLabel()
         self.label_id_4.setText("请输入修改后ID：")
         self.line_edit_id_4 = QtWidgets.QLineEdit()
         self.line_edit_id_4.setFont(QFont('Arial', 14))
-        self.line_edit_id_4.setText(self.db.get_id_num(id))
+        self.line_edit_id_4.setText(id_num_before)
 
-        self.label_show_camera = QtWidgets.QLabel()
-        self.label_show_camera.setFixedSize(self.WIDTH, self.HEIGHT)
-        self.label_show_camera.setAutoFillBackground(False)
         self.label_show_pic_4 = QtWidgets.QLabel()
         self.label_show_pic_4.setFixedSize(self.WIDTH, self.HEIGHT)
         self.label_show_pic_4.setAutoFillBackground(False)
-        face_img = self.db.get_face_img(id)
         face_info_img = QtGui.QImage.fromData(face_img)
         face_info_pixmap = QtGui.QPixmap.fromImage(face_info_img)
         self.label_show_pic_4.setScaledContents(True)
@@ -221,7 +230,7 @@ class AdminWindow(QtWidgets.QMainWindow):
         self.right_layout_update_4.addWidget(self.label_id_4, 2, 2, 1, 2)
         self.right_layout_update_4.addWidget(self.line_edit_id_4, 2, 4, 1, 6)
         self.right_layout_update_4.addWidget(self.label_show_pic_4, 4, 1, 1, 10)
-        self.right_layout_update_4.addWidget(self.label_show_camera, 4, 12, 1, 10)
+        self.right_layout_update_4.addWidget(self.label_show_camera_4, 4, 12, 1, 10)
         self.right_layout_update_4.addWidget(self.button_cam_4, 5, 5, 1, 2)
 
 
@@ -232,7 +241,10 @@ class AdminWindow(QtWidgets.QMainWindow):
         self.right_layout_5.addWidget(self.button_ask_5, 11, 5, 1, 2)
 
     def set_right_widget_6(self):
-        print("待写6")
+        self.table_6 = QtWidgets.QTableWidget()
+        self.button_ask_6 = QtWidgets.QPushButton(u"查看")
+        self.right_layout_6.addWidget(self.table_6, 0, 2, 10, 10)
+        self.right_layout_6.addWidget(self.button_ask_6, 11, 5, 1, 2)
 
     def set_right_widget_7(self):
         print("待写7")
@@ -328,10 +340,12 @@ class AdminWindow(QtWidgets.QMainWindow):
         self.right_widget_7.hide()
         self.right_widget_8.show()
 
+    def button_left_9_click(self):
+        self.close()
+
     def take_photo_1(self):
         if self.timer_camera.isActive() == False:
             flag = self.cap.open(glo.CAM_NAME)
-            print(flag)
             if flag == False:
                 msg = QtWidgets.QMessageBox.Warning(self, u'Warning', u'请检测相机与电脑是否连接正确',
                                                     buttons=QtWidgets.QMessageBox.Ok,
@@ -348,7 +362,9 @@ class AdminWindow(QtWidgets.QMainWindow):
             self.button_ask_1.setText(u'打开相机')
             user_name = self.line_edit_name_1.text()
             user_id = self.line_edit_id_1.text()
-            if user_name != "" and user_id != "" and str.isdigit(user_id):
+            image_encoded = fr.face_encodings(self.image)
+            num = len(image_encoded)
+            if num == 1 and user_name != "" and user_id != "" and str.isdigit(user_id):
                 cv2.imwrite("photo_register.png", self.image)
                 self.db.add_photo(user_name, user_id)
             else:
@@ -357,6 +373,10 @@ class AdminWindow(QtWidgets.QMainWindow):
                     msg_text = "姓名或密码不能为空"
                 else:
                     msg_text = "密码只能为数字"
+                if num == 0:
+                    msg_text = "未识别到人脸"
+                elif num > 1:
+                    msg_text = "人数大于1"
                 msg = QtWidgets.QMessageBox.information(self, "警告！！！", msg_text, QMessageBox.Yes)
 
     def take_photo_4(self):
@@ -393,10 +413,14 @@ class AdminWindow(QtWidgets.QMainWindow):
 
     def show_camera(self):
         flag, self.image = self.cap.read()
-        show = cv2.resize(self.image, (self.WIDTH, self.HEIGHT))
-        show = cv2.cvtColor(show, cv2.COLOR_BGR2RGB)
-        showImage = QtGui.QImage(show.data, show.shape[1], show.shape[0], QtGui.QImage.Format_RGB888)
-        self.label_show_camera.setPixmap(QtGui.QPixmap.fromImage(showImage))
+        show_1 = cv2.resize(self.image, (glo.CAP_WIDTH, glo.CAP_HEIGHT))
+        show_1 = cv2.cvtColor(show_1, cv2.COLOR_BGR2RGB)
+        showImage_1 = QtGui.QImage(show_1.data, show_1.shape[1], show_1.shape[0], QtGui.QImage.Format_RGB888)
+        self.label_show_camera_1.setPixmap(QtGui.QPixmap.fromImage(showImage_1))
+        show_4 = cv2.resize(self.image, (self.WIDTH, self.HEIGHT))
+        show_4 = cv2.cvtColor(show_4, cv2.COLOR_BGR2RGB)
+        showImage_4 = QtGui.QImage(show_4.data, show_4.shape[1], show_4.shape[0], QtGui.QImage.Format_RGB888)
+        self.label_show_camera_4.setPixmap(QtGui.QPixmap.fromImage(showImage_4))
 
     def show_data_face_info(self, _name=None, _id=None, _create_time=None, _last_mod_time=None):
         data, x, y = self.db.get_all_info()
@@ -486,7 +510,6 @@ class AdminWindow(QtWidgets.QMainWindow):
         self.button_cam_4.clicked.connect(self.take_photo_4)
         self.right_widget_update_4.show()
 
-
     def button_delete_click(self):
         button = self.sender()
         if button:
@@ -495,6 +518,27 @@ class AdminWindow(QtWidgets.QMainWindow):
             id = str(self.table_4.takeItem(row, 0).text())
             self.db.delete_info(id)
             self.show_to_mod_face_info()
+
+    def ope_show(self, _OpeTime=None, _Name=None, _Ope_Id=None):
+        data, x, y = self.db.get_all_ope_info()
+        self.table_6.setRowCount(x)
+        self.table_6.setColumnCount(y)
+        for i in range(x):
+            for j in range(y):
+                info = ""
+                if j == 3:
+                    if data[i][j] == 1:
+                        info = "删除"
+                    else:
+                        info = "修改"
+                else:
+                    info = str(data[i][j])
+                temp_data = QTableWidgetItem(info)
+                self.table_6.setItem(i, j, temp_data)
+        self.table_6.setEditTriggers(QAbstractItemView.NoEditTriggers)
+        self.table_6.setHorizontalHeaderLabels(['操作时间', '操作管理员姓名', '被操作人脸信息编号', '操作类型'])
+        self.table_6.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)  # 自动分配列宽
+        self.table_6.verticalHeader().setDefaultSectionSize(self.HEIGHT)
 
     def closeEvent(self, event):
         if self.cap.isOpened():

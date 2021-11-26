@@ -1,42 +1,40 @@
 import sys
-import os
-import cv2
-import copy
-from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5.QtWidgets import *
-from PyQt5.QtCore import *
-from PyQt5.QtGui import QPalette, QBrush, QPixmap
-
-import glo
 from name import *
 from rectangle import *
 from admin_window import *
+from login_window import *
+
 
 class Ui_MainWindow(QtWidgets.QWidget):
     def __init__(self, parent=None):
         super(Ui_MainWindow, self).__init__(parent)
-
         self.timer_camera = QtCore.QTimer()  # 初始化定时器
         self.cap = cv2.VideoCapture()  # 初始化摄像头
-        self.admin_window = AdminWindow()
+        self.login_window = LoginWindow()
         self.CAM_NUM = 0
-        self.set_ui()
-        self.slot_init()
         self.__flag_work = 0
         self.x = 0
         self.count = 0
+        self.set_ui()
+        self.slot_init()
 
     def set_ui(self):
         self.__layout_main = QtWidgets.QHBoxLayout()  # 采用QHBoxLayout类，按照从左到右的顺序来添加控件
-        self.__layout_fun_button = QtWidgets.QHBoxLayout()
+        self.__layout_fun_button_1 = QtWidgets.QHBoxLayout()
+        self.__layout_fun_button_2 = QHBoxLayout()
+        self.__layout_fun_menu = QVBoxLayout()
         self.__layout_data_show = QtWidgets.QVBoxLayout()  # QVBoxLayout类垂直地摆放小部件
 
         self.button_open_camera = QtWidgets.QPushButton(u'打开相机')
-        self.button_open_admin = QtWidgets.QPushButton(u'管理员登录')
-        self.button_close = QtWidgets.QPushButton(u'退出')
+        self.button_admin_login = QtWidgets.QPushButton(u'管理员登录')
+        self.button_admin_open = QtWidgets.QPushButton(u'管理员面板')
+        self.button_admin_logout = QtWidgets.QPushButton(u'登出')
+        self.button_close = QtWidgets.QPushButton(u'关闭系统')
 
         self.button_open_camera.setMinimumHeight(50)
-        self.button_open_admin.setMinimumHeight(50)
+        self.button_admin_login.setMinimumHeight(50)
+        self.button_admin_open.setMinimumHeight(50)
+        self.button_admin_logout.setMinimumHeight(50)
         self.button_close.setMinimumHeight(50)
 
         # 信息显示
@@ -51,11 +49,15 @@ class Ui_MainWindow(QtWidgets.QWidget):
         """
         布局
         """
-        self.__layout_fun_button.addWidget(self.button_open_camera)
-        self.__layout_fun_button.addWidget(self.button_open_admin)
-        self.__layout_fun_button.addWidget(self.button_close)
+        self.__layout_fun_button_1.addWidget(self.button_open_camera)
+        self.__layout_fun_button_1.addWidget(self.button_admin_login)
+        self.__layout_fun_button_1.addWidget(self.button_close)
+        self.__layout_fun_button_2.addWidget(self.button_admin_open)
+        self.__layout_fun_button_2.addWidget(self.button_admin_logout)
+        self.__layout_fun_menu.addLayout(self.__layout_fun_button_1)
+        self.__layout_fun_menu.addLayout(self.__layout_fun_button_2)
         self.__layout_data_show.addWidget(self.label_show_name)
-        self.__layout_data_show.addLayout(self.__layout_fun_button)
+        self.__layout_data_show.addLayout(self.__layout_fun_menu)
         self.__layout_main.addStretch(1)
         self.__layout_main.addWidget(self.label_show_camera)
         self.__layout_main.addLayout(self.__layout_data_show)
@@ -73,7 +75,9 @@ class Ui_MainWindow(QtWidgets.QWidget):
 
     def slot_init(self):  # 建立通信连接
         self.button_open_camera.clicked.connect(self.button_open_camera_click)
-        self.button_open_admin.clicked.connect(self.button_open_admin_click)
+        self.button_admin_login.clicked.connect(self.button_admin_login_click)
+        self.button_admin_open.clicked.connect(self.button_admin_open_click)
+        self.button_admin_logout.clicked.connect(self.button_admin_logout_click)
         self.button_close.clicked.connect(self.button_close_clicked)
 
         self.timer_camera.timeout.connect(self.show_camera)
@@ -110,14 +114,36 @@ class Ui_MainWindow(QtWidgets.QWidget):
             self.label_show_camera.clear()
             self.button_open_camera.setText(u'打开相机')
 
-    def button_open_admin_click(self):
-        self.admin_window.show()
+    def button_admin_open_click(self):
+        if glo.is_login:
+            self.admin_window = AdminWindow(glo.login_name)
+            self.admin_window.show()
+        else:
+            QMessageBox.information(self, "错误", "请先登录！", QMessageBox.Yes)
+
+    def button_admin_login_click(self):
+        if not glo.is_login:
+            self.login_window.show()
+        else:
+            QMessageBox.information(self, "错误", "您已登录！", QMessageBox.Yes)
+
+    def button_admin_logout_click(self):
+        if glo.is_login:
+            result = QMessageBox.question(self, "警告", "您确定要登出吗", QMessageBox.Yes | QMessageBox.No)
+            if result == QMessageBox.Yes:
+                print(1)
+                if self.admin_window.isVisible():
+                    self.admin_window.close()
+                glo.is_login = False
+                glo.login_name = "未登录"
+        else:
+            QMessageBox.information(self, "错误", "您还未登录", QMessageBox.Yes)
 
     def show_camera(self):
         flag, self.image = self.cap.read()
         show = cv2.resize(self.image, (glo.CAP_WIDTH, glo.CAP_HEIGHT))
         glo.lock("show_img")
-        glo.set_value("show_img", copy.copy(show))
+        glo.set_value("show_img", show)
         glo.release("show_img")
         glo.lock("rects")
         r_rects = glo.get_value("rects")
@@ -149,6 +175,9 @@ class Ui_MainWindow(QtWidgets.QWidget):
             glo.lock("close")
             glo.set_value("close", True)
             glo.release("close")
+            if glo.is_login:
+                if self.admin_window.isEnabled():
+                    self.admin_window.close()
             if self.admin_window.isEnabled():
                 self.admin_window.close()
             if self.cap.isOpened():
