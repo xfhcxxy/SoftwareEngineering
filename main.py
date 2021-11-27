@@ -178,8 +178,6 @@ class Ui_MainWindow(QtWidgets.QWidget):
             if glo.is_login:
                 if self.admin_window.isEnabled():
                     self.admin_window.close()
-            if self.admin_window.isEnabled():
-                self.admin_window.close()
             if self.cap.isOpened():
                 self.cap.release()
             if self.timer_camera.isActive():

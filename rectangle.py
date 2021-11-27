@@ -6,7 +6,7 @@ import cv2
 
 
 """
-当镜头里的人离开或不只一个人时，清除三个标记
+当镜头里的人离开或不只一个人时，清除四个标记
 """
 def clear_info(name=glo.DEFAULT_NAME):
     glo.lock("face_now")

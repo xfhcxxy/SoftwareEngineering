@@ -8,6 +8,8 @@ from scipy.spatial import distance as dist
 import numpy as np
 from db import *
 import cv2
+from keras.preprocessing import image
+from keras.models import load_model
 
 
 class GetName(threading.Thread):
@@ -15,6 +17,7 @@ class GetName(threading.Thread):
         super().__init__()
         self.db = DataBase()
         self.load()
+        self.model = load_model("train_mask/model/maskAndNoMask1.h5")
         """
         for image in self.images:
             current_image = fr.load_image_file("images/" + image)
@@ -60,12 +63,15 @@ class GetName(threading.Thread):
             glo.lock("face_now")
             r_exist_one_face = glo.get_value("exist_one_face")
             r_face_img = fr.load_image_file("face_now.png")
+            r_face_gbr = cv2.imread("face_now.png")
             r_eye_close = glo.get_value('eye_close')
             r_eye_open = glo.get_value('eye_open')
             exist_one_face = copy.copy(r_exist_one_face)
             face_img = copy.copy(r_face_img)
+            face_gbr = copy.copy(r_face_gbr)
             eye_close = copy.copy(r_eye_close)
             eye_open = copy.copy(r_eye_open)
+
             glo.release("face_now")
 
             """
@@ -74,6 +80,27 @@ class GetName(threading.Thread):
             两个状态都有时代表为活体，再进行人脸匹配
             """
             if exist_one_face:
+                rects = fr.face_locations(face_img)
+                if len(rects) == 0:
+                    continue
+                top, right, bottom, left = rects[0]
+                height = bottom - top
+                width  = right - left
+                top = max(0, top - int(height*0.3))
+                #bottom = min(glo.CAP_HEIGHT, bottom + int(height*0.3))
+                left = max(0, left - int(width*0.3))
+                right = min(glo.CAP_WIDTH, right + int(width*0.3))
+                mask_dec = face_gbr[top:bottom, left:right]
+                cv2.imwrite("mask_dec.png", mask_dec)
+                #cv2.imshow("test", mask_dec)
+                img = image.load_img("mask_dec.png", target_size=(150, 150))
+                img_tensor = image.img_to_array(img) / 255.0
+                img_tensor = np.expand_dims(img_tensor, axis=0)
+                prediction = self.model.predict(img_tensor)
+                #print(prediction)
+                if prediction[0][0] < 0.5:
+                    self.set_name("请取下口罩")
+                    continue
                 if eye_open and eye_close:
                     faces_img_encoded = fr.face_encodings(face_img)
                     if len(faces_img_encoded) == 0:
@@ -108,6 +135,8 @@ class GetName(threading.Thread):
                         glo.set_value('eye_close', eye_close)
                         glo.set_value('eye_open', eye_open)
                     glo.release("face_now")
+
+
 
             glo.lock("close")
             close = glo.get_value("close")
