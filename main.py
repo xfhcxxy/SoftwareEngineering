@@ -1,4 +1,5 @@
 import sys
+from camera import *
 from name import *
 from rectangle import *
 from admin_window import *
@@ -8,13 +9,15 @@ from login_window import *
 class Ui_MainWindow(QtWidgets.QWidget):
     def __init__(self, parent=None):
         super(Ui_MainWindow, self).__init__(parent)
+        self.cam = Camera()
+        self.rec = GetRectangle()
+        self.name = GetName()
+        self.cam.start()
+        self.rec.start()
+        self.name.start()
+        self.open_camera = False
         self.timer_camera = QtCore.QTimer()  # 初始化定时器
-        self.cap = cv2.VideoCapture()  # 初始化摄像头
         self.login_window = LoginWindow()
-        self.CAM_NUM = 0
-        self.__flag_work = 0
-        self.x = 0
-        self.count = 0
         self.set_ui()
         self.slot_init()
 
@@ -86,31 +89,14 @@ class Ui_MainWindow(QtWidgets.QWidget):
         self.close()
 
     def button_open_camera_click(self):
-        if self.timer_camera.isActive() == False:
-            flag = self.cap.open(self.CAM_NUM)
-            if flag == False:
-                msg = QtWidgets.QMessageBox.Warning(self, u'Warning', u'请检测相机与电脑是否连接正确',
-                                                    buttons=QtWidgets.QMessageBox.Ok,
-                                                    defaultButton=QtWidgets.QMessageBox.Ok)
-                # if msg==QtGui.QMessageBox.Cancel:
-                #                     pass
-            else:
-                glo.lock("close")
-                glo.set_value("close", False)
-                glo.release("close")
-                self.rec = GetRectangle()
-                self.name = GetName()
-                self.rec.start()
-                self.name.start()
-                self.timer_camera.start(30)
-                self.button_open_camera.setText(u'关闭相机')
+        if not self.open_camera:
+            self.open_camera = True
+            self.timer_camera.start(30)
+            self.button_open_camera.setText(u'关闭相机')
         else:
-            glo.lock("close")
-            glo.set_value("close", True)  # 给画框线程和识别线程信号，令其停止
-            glo.release("close")
+            self.open_camera = False
             self.label_show_name.setText(glo.DEFAULT_NAME)
             self.timer_camera.stop()
-            self.cap.release()
             self.label_show_camera.clear()
             self.button_open_camera.setText(u'打开相机')
 
@@ -140,10 +126,9 @@ class Ui_MainWindow(QtWidgets.QWidget):
             QMessageBox.information(self, "错误", "您还未登录", QMessageBox.Yes)
 
     def show_camera(self):
-        flag, self.image = self.cap.read()
-        show = cv2.resize(self.image, (glo.CAP_WIDTH, glo.CAP_HEIGHT))
         glo.lock("show_img")
-        glo.set_value("show_img", show)
+        r_show = glo.get_value("show_img")
+        show = copy.copy(r_show)
         glo.release("show_img")
         glo.lock("rects")
         r_rects = glo.get_value("rects")
@@ -169,17 +154,24 @@ class Ui_MainWindow(QtWidgets.QWidget):
         msg.addButton(cancel, QtWidgets.QMessageBox.RejectRole)
         ok.setText(u'确定')
         cancel.setText(u'取消')
+        glo.lock("close")
+        glo.set_value("close", True)
+        glo.release("close")
+        while True:
+            if not self.name.is_alive():
+                break
+        while True:
+            if not self.rec.is_alive():
+                break
+        while True:
+            if not self.cam.is_alive():
+                break
         if msg.exec_() == QtWidgets.QMessageBox.RejectRole:
             event.ignore()
         else:
-            glo.lock("close")
-            glo.set_value("close", True)
-            glo.release("close")
             if glo.is_login:
                 if self.admin_window.isEnabled():
                     self.admin_window.close()
-            if self.cap.isOpened():
-                self.cap.release()
             if self.timer_camera.isActive():
                 self.timer_camera.stop()
             event.accept()
@@ -189,6 +181,7 @@ if __name__ == '__main__':
     glo.__init__()
     App = QApplication(sys.argv)
     App.setStyleSheet(open('styleSheet.qss', encoding='utf-8').read())
+
     win = Ui_MainWindow()
     win.show()
     sys.exit(App.exec_())

@@ -54,5 +54,4 @@ class GetRectangle(threading.Thread):
             close = glo.get_value("close")
             glo.release("close")
             if close:
-                clear_info()
                 break

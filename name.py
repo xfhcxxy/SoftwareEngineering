@@ -136,8 +136,6 @@ class GetName(threading.Thread):
                         glo.set_value('eye_open', eye_open)
                     glo.release("face_now")
 
-
-
             glo.lock("close")
             close = glo.get_value("close")
             glo.release("close")

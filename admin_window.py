@@ -5,6 +5,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 from PyQt5.QtGui import QPalette, QBrush, QPixmap, QFont
+
 import glo
 from db import *
 
@@ -12,13 +13,14 @@ from db import *
 class AdminWindow(QtWidgets.QMainWindow):
     def __init__(self, admin_name="未登录"):
         super().__init__()
-        self.cap = cv2.VideoCapture()  # 初始化摄像头
-        self.timer_camera = QtCore.QTimer()  # 初始化定时器
-        self.db = DataBase()
         self.WIDTH = 200
         self.HEIGHT = 150
         self.id = -1
+        self.open_camera_1 = False
+        self.open_camera_4 = False
         self.admin_name = admin_name
+        self.timer_camera = QtCore.QTimer()  # 初始化定时器
+        self.db = DataBase()
         self.init_ui()
         self.slot_init()
 
@@ -181,7 +183,6 @@ class AdminWindow(QtWidgets.QMainWindow):
         self.right_layout_1.addWidget(self.label_show_camera_1, 4, 2, 1, 10)
         self.right_layout_1.addWidget(self.button_ask_1, 5, 5, 1, 2)
 
-
     def set_right_widget_2(self):
         print("待写2")
 
@@ -232,7 +233,6 @@ class AdminWindow(QtWidgets.QMainWindow):
         self.right_layout_update_4.addWidget(self.label_show_pic_4, 4, 1, 1, 10)
         self.right_layout_update_4.addWidget(self.label_show_camera_4, 4, 12, 1, 10)
         self.right_layout_update_4.addWidget(self.button_cam_4, 5, 5, 1, 2)
-
 
     def set_right_widget_5(self):
         self.table_5 = QtWidgets.QTableWidget()
@@ -344,21 +344,13 @@ class AdminWindow(QtWidgets.QMainWindow):
         self.close()
 
     def take_photo_1(self):
-        if self.timer_camera.isActive() == False:
-            flag = self.cap.open(glo.CAM_NAME)
-            if flag == False:
-                msg = QtWidgets.QMessageBox.Warning(self, u'Warning', u'请检测相机与电脑是否连接正确',
-                                                    buttons=QtWidgets.QMessageBox.Ok,
-                                                    defaultButton=QtWidgets.QMessageBox.Ok)
-                # if msg==QtGui.QMessageBox.Cancel:
-                #                     pass
-            else:
-                self.timer_camera.start(30)
-                self.button_ask_1.setText(u'确定')
+        if not self.open_camera_1:
+            self.open_camera_1 = True
+            self.timer_camera.start(30)
+            self.button_ask_1.setText(u'确定')
         else:
+            self.open_camera_1 = False
             self.timer_camera.stop()
-            self.cap.release()
-            #self.label_show_camera.clear()
             self.button_ask_1.setText(u'打开相机')
             user_name = self.line_edit_name_1.text()
             user_id = self.line_edit_id_1.text()
@@ -380,22 +372,13 @@ class AdminWindow(QtWidgets.QMainWindow):
                 msg = QtWidgets.QMessageBox.information(self, "警告！！！", msg_text, QMessageBox.Yes)
 
     def take_photo_4(self):
-        if self.timer_camera.isActive() == False:
-            flag = self.cap.open(glo.CAM_NAME)
-            print(flag)
-            if flag == False:
-                msg = QtWidgets.QMessageBox.Warning(self, u'Warning', u'请检测相机与电脑是否连接正确',
-                                                    buttons=QtWidgets.QMessageBox.Ok,
-                                                    defaultButton=QtWidgets.QMessageBox.Ok)
-                # if msg==QtGui.QMessageBox.Cancel:
-                #                     pass
-            else:
-                self.timer_camera.start(30)
-                self.button_cam_4.setText(u'确定')
+        if not self.open_camera_4:
+            self.open_camera_4 = True
+            self.timer_camera.start(30)
+            self.button_cam_4.setText(u'确定')
         else:
+            self.open_camera_4 = False
             self.timer_camera.stop()
-            self.cap.release()
-            #self.label_show_camera.clear()
             self.button_cam_4.setText(u'打开相机')
             user_name = self.line_edit_name_4.text()
             user_id = self.line_edit_id_4.text()
@@ -412,12 +395,15 @@ class AdminWindow(QtWidgets.QMainWindow):
                 msg = QtWidgets.QMessageBox.information(self, "警告！！！", msg_text, QMessageBox.Yes)
 
     def show_camera(self):
-        flag, self.image = self.cap.read()
-        show_1 = cv2.resize(self.image, (glo.CAP_WIDTH, glo.CAP_HEIGHT))
+        glo.lock("show_img")
+        r_show_1 = glo.get_value("show_img")
+        show_1 = copy.copy(r_show_1)
+        glo.release("show_img")
+        show_4 = copy.copy(show_1)
         show_1 = cv2.cvtColor(show_1, cv2.COLOR_BGR2RGB)
         showImage_1 = QtGui.QImage(show_1.data, show_1.shape[1], show_1.shape[0], QtGui.QImage.Format_RGB888)
         self.label_show_camera_1.setPixmap(QtGui.QPixmap.fromImage(showImage_1))
-        show_4 = cv2.resize(self.image, (self.WIDTH, self.HEIGHT))
+        show_4 = cv2.resize(show_4, (self.WIDTH, self.HEIGHT))
         show_4 = cv2.cvtColor(show_4, cv2.COLOR_BGR2RGB)
         showImage_4 = QtGui.QImage(show_4.data, show_4.shape[1], show_4.shape[0], QtGui.QImage.Format_RGB888)
         self.label_show_camera_4.setPixmap(QtGui.QPixmap.fromImage(showImage_4))
