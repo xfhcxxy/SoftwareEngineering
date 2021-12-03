@@ -1,10 +1,9 @@
 import numpy as np
-import os
 import threading
 import time
-import cv2
-import MySQLdb
 import copy
+import cv2
+from PyQt5 import QtGui
 """全局常量"""
 ########################################################################################
 """相机参数"""
@@ -29,6 +28,13 @@ is_login = False
 login_name = "未登录"
 
 
+close_img_bgr = cv2.imread("images/close_img.png")
+close_img_bgr = cv2.resize(close_img_bgr, (CAP_WIDTH, CAP_HEIGHT))
+close_img_rbg = cv2.cvtColor(close_img_bgr, cv2.COLOR_BGR2RGB)
+close_img = QtGui.QImage(close_img_rbg.data, close_img_rbg.shape[1], close_img_rbg.shape[0], QtGui.QImage.Format_RGB888)
+
+
+
 def __init__():
     global mutex
     mutex['show_img'] = threading.Lock()
@@ -36,6 +42,7 @@ def __init__():
     mutex['rects'] = threading.Lock()
     mutex['close'] = threading.Lock()
     mutex['name'] = threading.Lock()
+    mutex['db'] = threading.Lock()
     global _global_dict
     _global_dict = {}
     _global_dict["show_img"] = np.zeros((CAP_HEIGHT, CAP_WIDTH, 3), np.uint8)

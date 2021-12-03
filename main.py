@@ -22,17 +22,17 @@ class Ui_MainWindow(QtWidgets.QWidget):
         self.slot_init()
 
     def set_ui(self):
-        self.__layout_main = QtWidgets.QHBoxLayout()  # 采用QHBoxLayout类，按照从左到右的顺序来添加控件
-        self.__layout_fun_button_1 = QtWidgets.QHBoxLayout()
+        self.__layout_main = QHBoxLayout()  # 采用QHBoxLayout类，按照从左到右的顺序来添加控件
+        self.__layout_fun_button_1 = QHBoxLayout()
         self.__layout_fun_button_2 = QHBoxLayout()
         self.__layout_fun_menu = QVBoxLayout()
-        self.__layout_data_show = QtWidgets.QVBoxLayout()  # QVBoxLayout类垂直地摆放小部件
+        self.__layout_data_show = QVBoxLayout()  # QVBoxLayout类垂直地摆放小部件
 
-        self.button_open_camera = QtWidgets.QPushButton(u'打开相机')
-        self.button_admin_login = QtWidgets.QPushButton(u'管理员登录')
-        self.button_admin_open = QtWidgets.QPushButton(u'管理员面板')
-        self.button_admin_logout = QtWidgets.QPushButton(u'登出')
-        self.button_close = QtWidgets.QPushButton(u'关闭系统')
+        self.button_open_camera = QPushButton(u'打开相机')
+        self.button_admin_login = QPushButton(u'管理员登录')
+        self.button_admin_open = QPushButton(u'管理员面板')
+        self.button_admin_logout = QPushButton(u'管理员登出')
+        self.button_close = QPushButton(u'关闭系统')
 
         self.button_open_camera.setMinimumHeight(50)
         self.button_admin_login.setMinimumHeight(50)
@@ -41,11 +41,12 @@ class Ui_MainWindow(QtWidgets.QWidget):
         self.button_close.setMinimumHeight(50)
 
         # 信息显示
-        self.label_show_camera = QtWidgets.QLabel()
-        self.label_show_name = QtWidgets.QLabel()
+        self.label_show_camera = QLabel()
+        self.label_show_name = QLabel()
 
         self.label_show_camera.setFixedSize(641, 481)
         self.label_show_camera.setAutoFillBackground(False)
+        self.label_show_camera.setPixmap(QtGui.QPixmap.fromImage(glo.close_img))
         self.label_show_name.setFixedSize(150, 50)
         self.label_show_name.setText("未检测到人脸")
 
@@ -69,13 +70,6 @@ class Ui_MainWindow(QtWidgets.QWidget):
         self.setLayout(self.__layout_main)
         self.setWindowTitle(u'Team5-耿申奥、刘欣龙、向宇')
 
-        '''
-        # 设置背景颜色
-        palette1 = QPalette()
-        palette1.setBrush(self.backgroundRole(),QBrush(QPixmap('background.jpg')))
-        self.setPalette(palette1)
-        '''
-
     def slot_init(self):  # 建立通信连接
         self.button_open_camera.clicked.connect(self.button_open_camera_click)
         self.button_admin_login.clicked.connect(self.button_admin_login_click)
@@ -98,6 +92,7 @@ class Ui_MainWindow(QtWidgets.QWidget):
             self.label_show_name.setText(glo.DEFAULT_NAME)
             self.timer_camera.stop()
             self.label_show_camera.clear()
+            self.label_show_camera.setPixmap(QtGui.QPixmap.fromImage(glo.close_img))
             self.button_open_camera.setText(u'打开相机')
 
     def button_admin_open_click(self):
@@ -117,7 +112,6 @@ class Ui_MainWindow(QtWidgets.QWidget):
         if glo.is_login:
             result = QMessageBox.question(self, "警告", "您确定要登出吗", QMessageBox.Yes | QMessageBox.No)
             if result == QMessageBox.Yes:
-                print(1)
                 if self.admin_window.isVisible():
                     self.admin_window.close()
                 glo.is_login = False
@@ -147,8 +141,8 @@ class Ui_MainWindow(QtWidgets.QWidget):
         self.label_show_name.setText(name)
 
     def closeEvent(self, event):
-        ok = QtWidgets.QPushButton()
-        cancel = QtWidgets.QPushButton()
+        ok = QPushButton()
+        cancel = QPushButton()
         msg = QtWidgets.QMessageBox(QtWidgets.QMessageBox.Warning, u'关闭', u'是否关闭！')
         msg.addButton(ok, QtWidgets.QMessageBox.ActionRole)
         msg.addButton(cancel, QtWidgets.QMessageBox.RejectRole)
@@ -181,7 +175,6 @@ if __name__ == '__main__':
     glo.__init__()
     App = QApplication(sys.argv)
     App.setStyleSheet(open('styleSheet.qss', encoding='utf-8').read())
-
     win = Ui_MainWindow()
     win.show()
     sys.exit(App.exec_())

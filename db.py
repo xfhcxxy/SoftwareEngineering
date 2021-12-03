@@ -16,7 +16,7 @@ class DataBase:
         self.db.commit()
         cursor.close()
 
-    def update_info(self, id, user_name, user_id):
+    def update_info_with_img(self, id, user_name, user_id):
         cursor = self.db.cursor()
         fp = open("photo_register.png", 'rb')
         img = fp.read()
@@ -27,16 +27,25 @@ class DataBase:
         self.db.commit()
         cursor.close()
 
-    def delete_info(self, id):
+    def update_info_without_img(self, _id, user_name, user_id):
         cursor = self.db.cursor()
-        cursor.execute("UPDATE face_info SET IsValid = 0 WHERE Id =" + id)
+        dt = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        cursor.execute("UPDATE face_info SET Name = %s, IdNum = %s, LastModTime = %s WHERE id = %s",
+                       (user_name, int(user_id), dt, _id))
         self.db.commit()
         cursor.close()
 
-    def get_info_before_update(self, id):
+    def delete_info(self, _id):
         cursor = self.db.cursor()
-        cursor.execute("SELECT FaceImg, Name, IdNum FROM face_info WHERE Id =" + id)
+        cursor.execute("UPDATE face_info SET IsValid = 0 WHERE Id =" + _id)
+        self.db.commit()
+        cursor.close()
+
+    def get_info_before_update(self, _id):
+        cursor = self.db.cursor()
+        cursor.execute("SELECT FaceImg, Name, IdNum FROM face_info WHERE Id =" + _id)
         data = cursor.fetchone()
+        self.db.commit()
         cursor.close()
         return data[0], str(data[1]), str(data[2])
 
@@ -47,6 +56,8 @@ class DataBase:
         cursor = self.db.cursor()
         cursor.execute("SELECT * FROM face_info")
         data = cursor.fetchall()
+        self.db.commit()
+        cursor.close()
         x = 0
         y = 7
         _data = []
@@ -61,6 +72,7 @@ class DataBase:
         cursor = self.db.cursor()
         cursor.execute("SELECT COUNT(*) FROM face_info")
         num = cursor.fetchone()
+        self.db.commit()
         cursor.close()
         return num
 
@@ -69,8 +81,10 @@ class DataBase:
     """
     def get_all_ope_info(self):
         cursor = self.db.cursor()
-        cursor.execute("SELECT * FROM ope_history")
+        cursor.execute("SELECT * FROM delete_history")
         data = cursor.fetchall()
+        self.db.commit()
+        cursor.close()
         x = 0
         y = 4
         _data = []
@@ -80,7 +94,7 @@ class DataBase:
         return _data, x, y
 
     """
-    增加一条操作记录，ope_tyoe=1为删除，=0为修改
+    增加一条操作记录，ope_type=1为删除，=0为修改
     """
     def add_ope_history(self, user_name, user_id, ope_type):
         cursor = self.db.cursor()
@@ -96,10 +110,6 @@ class DataBase:
         cursor = self.db.cursor()
         cursor.execute(u"SELECT Name, Password FROM admin_passwd WHERE Name='" + login_name + "'")
         data = cursor.fetchall()
+        self.db.commit()
         cursor.close()
         return data
-
-
-# if __name__ == '__main__':
-#     db = DataBase()
-#     db.get_name()

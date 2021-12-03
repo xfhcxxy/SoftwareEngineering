@@ -58,7 +58,6 @@ class LoginWindow(QtWidgets.QWidget):
         login_name = self.line_edit_name.text()
         login_passwd = self.line_edit_passwd.text()
         data = self.db.login(login_name)
-
         if login_passwd and login_name:
             if data:
                 if str(data[0][1]) == login_passwd:
@@ -69,9 +68,11 @@ class LoginWindow(QtWidgets.QWidget):
                 else:
                     QMessageBox.information(self, "登录失败", "权限码错误！", QMessageBox.Yes)
             else:
-                QMessageBox.information(self, "登录失败", "请输入权限码！", QMessageBox.Yes)
+                QMessageBox.information(self, "登录失败", "不存在的管理员姓名！", QMessageBox.Yes)
         elif login_name:
-            QMessageBox.information(self, "登录失败", "不存在的管理员姓名！", QMessageBox.Yes)
+            QMessageBox.information(self, "登录失败", "请输入权限码！", QMessageBox.Yes)
+        elif login_passwd:
+            QMessageBox.information(self, "登录失败", "请输入姓名！", QMessageBox.Yes)
         else:
             QMessageBox.information(self, "登录失败", "请输入姓名和权限码！", QMessageBox.Yes)
 
